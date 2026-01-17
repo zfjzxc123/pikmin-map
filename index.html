@@ -98,9 +98,17 @@
     <div class="flex flex-1 relative overflow-hidden">
         <!-- Sidebar (Filter) -->
         <div id="sidebar" class="absolute md:relative z-20 top-0 left-0 h-full bg-white shadow-lg md:shadow-none w-64 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r border-gray-200">
-            <div class="p-4 border-b border-gray-100 bg-gray-50">
-                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">飾品分類</h2>
-                <p class="text-xs text-gray-400">點擊分類以過濾地圖上的點</p>
+            <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div>
+                        <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">飾品分類 (可多選)</h2>
+                        <p class="text-xs text-gray-400">點擊分類以過濾地圖</p>
+                    </div>
+                </div>
+                <!-- Mobile Only Close Sidebar Button -->
+                <button id="sidebarCloseBtn" class="md:hidden text-gray-400 p-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
             </div>
             <div id="categoryList" class="flex-1 overflow-y-auto p-2 space-y-1">
                 <!-- Categories will be injected here JS -->
@@ -111,8 +119,10 @@
         <div class="flex-1 relative h-full w-full">
             
             <!-- Adding Mode Instruction Banner -->
-            <div id="instructionBanner" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg text-sm font-medium animate-bounce pointer-events-none">
-                👇 請在地圖上點擊你發現飾品的位置
+            <div id="instructionBanner" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-gray-800 text-white px-4 py-2 md:px-6 md:py-3 rounded-full shadow-lg text-sm font-medium animate-bounce flex items-center gap-3 whitespace-nowrap max-w-[90%] overflow-hidden">
+                <span>👇 點擊地圖</span>
+                <span class="w-px h-4 bg-gray-600 opacity-30"></span>
+                <button id="manualInputBtn" class="text-blue-300 hover:text-white underline underline-offset-2 transition-colors">或 手動輸入座標</button>
             </div>
 
             <!-- Data Loading Indicator (Non-blocking) -->
@@ -129,11 +139,11 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><crosshair cx="12" cy="12" r="10"></crosshair><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
             </button>
 
-            <!-- Add Point Form (Modal) -->
+            <!-- Add/Edit Point Form (Modal) -->
             <div id="addModal" class="hidden absolute bottom-0 left-0 w-full bg-white shadow-[0_-5px_20px_rgba(0,0,0,0.1)] rounded-t-2xl z-[1001] p-6 animate-slide-up">
                 <div class="max-w-md mx-auto">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-lg text-gray-800">新增飾品點</h3>
+                        <h3 id="modalTitle" class="font-bold text-lg text-gray-800">新增飾品點</h3>
                         <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
@@ -143,6 +153,13 @@
                         <div>
                             <label class="block text-xs font-semibold text-gray-500 mb-1">地點名稱</label>
                             <input required id="pointName" type="text" placeholder="例如：大安森林公園入口" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm">
+                        </div>
+
+                        <!-- Single Coordinate Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">座標 (緯度, 經度)</label>
+                            <input required id="pointCoords" type="text" placeholder="例如：25.04, 121.53 或 25°04'04.8&quot;N 121°32'27.9&quot;E" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm font-mono text-xs">
+                            <p class="text-[10px] text-gray-400 mt-1">支援 Google Maps 座標 (十進位) 或 度分秒格式 (DMS)</p>
                         </div>
 
                         <div>
@@ -157,7 +174,7 @@
                             <textarea id="pointDesc" placeholder="例如：需要走到湖邊才偵測得到" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none h-20"></textarea>
                         </div>
 
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform active:scale-95">
+                        <button id="modalSubmitBtn" type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition-all transform active:scale-95">
                             確認新增
                         </button>
                     </form>
@@ -210,7 +227,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, query, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
         // --- Configuration ---
         const CATEGORIES = {
@@ -286,12 +303,16 @@
         let allPoints = [];
         let currentUser = null;
         let isAddingMode = false;
+        let isEditingMode = false;
+        let editPointId = null;
         let tempMarker = null;
-        let currentFilter = 'all';
+        // Changed to Set for multiple selection
+        let currentFilters = new Set(['all']);
         let pointToDeleteId = null;
         let redirectLatLng = null; // Store lat/lng for redirection
         let userLocationMarker = null;
         let userLocationCircle = null;
+        let currentUserPosition = null;
 
         // --- Initialization ---
         async function init() {
@@ -351,22 +372,36 @@
                 // Remove previous temp marker if exists
                 if (tempMarker) map.removeLayer(tempMarker);
 
+                // Determine default category based on filter
+                let defaultCat = 'restaurant';
+                if (currentFilters.size > 0 && !currentFilters.has('all')) {
+                    defaultCat = currentFilters.values().next().value;
+                }
+
                 // Create temp marker
-                const defaultIcon = createLeafletIcon(CATEGORIES.restaurant.icon);
+                const defaultIcon = createLeafletIcon(CATEGORIES[defaultCat]?.icon || CATEGORIES.restaurant.icon);
                 tempMarker = L.marker(latlng, { icon: defaultIcon, opacity: 0.7 }).addTo(map);
 
                 // Show Modal
-                document.getElementById('addModal').classList.remove('hidden');
-                document.getElementById('instructionBanner').classList.add('hidden');
+                showModal(false); // False for Add mode
                 
-                // Set default select to restaurant
-                document.getElementById('pointCategory').value = 'restaurant';
-                updateTempMarkerIcon('restaurant');
+                // Set default select to restaurant (or filter default)
+                document.getElementById('pointCategory').value = defaultCat;
+                updateTempMarkerIcon(defaultCat);
+
+                // Auto fill name with default category label
+                if (CATEGORIES[defaultCat]) {
+                    document.getElementById('pointName').value = CATEGORIES[defaultCat].label;
+                }
+
+                // Fill coordinates input (Single line)
+                document.getElementById('pointCoords').value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
             });
 
             // Location Found Event
             map.on('locationfound', function(e) {
                 const radius = e.accuracy;
+                currentUserPosition = e.latlng; // Store location
 
                 if (userLocationMarker) {
                     map.removeLayer(userLocationMarker);
@@ -397,6 +432,56 @@
             });
         }
 
+        // Helper function to parse coordinate string
+        function parseCoords(input) {
+            input = input.trim();
+            
+            // 1. Try DMS format (e.g. 25°04'04.8"N 121°32'27.9"E)
+            // Regex captures: Degrees, Minutes, Seconds, Direction
+            const dmsRegex = /(\d+)[°\s]+(\d+)['\s]+(\d+(\.\d+)?)["\s]*([NSEWnsew])/g;
+            const matches = [...input.matchAll(dmsRegex)];
+
+            if (matches.length >= 2) {
+                const parseDMS = (m) => {
+                    const deg = parseFloat(m[1]);
+                    const min = parseFloat(m[2]);
+                    const sec = parseFloat(m[3]);
+                    const dir = m[5].toUpperCase(); 
+                    
+                    let val = deg + min / 60 + sec / 3600;
+                    if (dir === 'S' || dir === 'W') val = -val;
+                    return { val, dir };
+                };
+
+                const c1 = parseDMS(matches[0]);
+                const c2 = parseDMS(matches[1]);
+
+                let lat, lng;
+                if (['N', 'S'].includes(c1.dir)) {
+                    lat = c1.val;
+                    lng = c2.val;
+                } else {
+                    lng = c1.val;
+                    lat = c2.val;
+                }
+                
+                return { lat, lng };
+            }
+
+            // 2. Try Standard Decimal format (e.g. 25.0405561, 121.5393391)
+            // Split by comma or space (if not DMS)
+            const parts = input.split(/[, ]+/).map(s => s.trim()).filter(s => s !== '');
+            if (parts.length >= 2) {
+                const lat = parseFloat(parts[0]);
+                const lng = parseFloat(parts[1]);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    return { lat, lng };
+                }
+            }
+            
+            return null;
+        }
+
         function initUI() {
             // Populate Categories in Sidebar & Select
             const catListEl = document.getElementById('categoryList');
@@ -416,11 +501,20 @@
                 option.textContent = `${cat.icon} ${cat.label}`;
                 selectEl.appendChild(option);
             });
+            
+            // Set initial active states
+            updateCategoryButtonsState();
 
             // Filter Toggle (Mobile)
             document.getElementById('filterToggleBtn').addEventListener('click', () => {
                 const sidebar = document.getElementById('sidebar');
                 sidebar.classList.toggle('-translate-x-full');
+            });
+            
+            // Close Sidebar Btn (Mobile)
+            document.getElementById('sidebarCloseBtn').addEventListener('click', () => {
+                const sidebar = document.getElementById('sidebar');
+                sidebar.classList.add('-translate-x-full');
             });
 
             // Add Point Button
@@ -432,11 +526,53 @@
                 map.locate({ setView: true, maxZoom: 16 });
             });
 
+            // Manual Input Button
+            document.getElementById('manualInputBtn').addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent map click if overlapping
+                const center = map.getCenter();
+                
+                // Determine default category based on filter
+                let defaultCat = 'restaurant';
+                if (currentFilters.size > 0 && !currentFilters.has('all')) {
+                    defaultCat = currentFilters.values().next().value;
+                }
+
+                // Trigger the logic similar to map click
+                if (tempMarker) map.removeLayer(tempMarker);
+                const defaultIcon = createLeafletIcon(CATEGORIES[defaultCat]?.icon || CATEGORIES.restaurant.icon);
+                tempMarker = L.marker(center, { icon: defaultIcon, opacity: 0.7 }).addTo(map);
+
+                showModal(false);
+                document.getElementById('pointCategory').value = defaultCat;
+                updateTempMarkerIcon(defaultCat);
+
+                // Auto fill name with default category label
+                if (CATEGORIES[defaultCat]) {
+                    document.getElementById('pointName').value = CATEGORIES[defaultCat].label;
+                }
+                
+                document.getElementById('pointCoords').value = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
+            });
+
+            // Coordinate inputs change listener (Real-time update)
+            document.getElementById('pointCoords').addEventListener('input', (e) => {
+                const coords = parseCoords(e.target.value);
+                if (coords) {
+                    const newLatLng = [coords.lat, coords.lng];
+                    if (tempMarker) {
+                        tempMarker.setLatLng(newLatLng);
+                        map.setView(newLatLng); // Pan to new location
+                    }
+                }
+            });
+
             // Close Modal
             document.getElementById('closeModalBtn').addEventListener('click', () => {
                 document.getElementById('addModal').classList.add('hidden');
                 if (tempMarker) map.removeLayer(tempMarker);
                 tempMarker = null;
+                isEditingMode = false;
+                editPointId = null;
                 // Re-show banner if still in adding mode
                 if (isAddingMode) document.getElementById('instructionBanner').classList.remove('hidden');
             });
@@ -444,48 +580,85 @@
             // Form Submit
             document.getElementById('addPointForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                if (!currentUser || !tempMarker) return;
+                if (!currentUser) return; // tempMarker is not strictly required if we trust inputs
 
                 const name = document.getElementById('pointName').value;
                 const cat = document.getElementById('pointCategory').value;
                 const desc = document.getElementById('pointDesc').value;
-                const latlng = tempMarker.getLatLng(); // Capture data before reset
-
-                // 1. Close UI immediately (Optimistic UX)
-                toggleAddMode(); 
-                document.getElementById('addPointForm').reset();
                 
-                showToast("正在儲存...");
+                // Read from input
+                const coordsStr = document.getElementById('pointCoords').value;
+                const coords = parseCoords(coordsStr);
+
+                if (!coords) {
+                    alert("請輸入有效的座標，例如：25.0339, 121.5644");
+                    return;
+                }
+
+                // Close UI immediately (Optimistic UX)
+                const isEdit = isEditingMode; // Save state for logic
+                const editId = editPointId;
+                
+                if (isEdit) {
+                    // Close edit modal specific logic
+                    document.getElementById('addModal').classList.add('hidden');
+                    if (tempMarker) map.removeLayer(tempMarker);
+                    tempMarker = null;
+                    isEditingMode = false;
+                    editPointId = null;
+                } else {
+                    // Close add mode
+                    toggleAddMode(); 
+                }
+                
+                document.getElementById('addPointForm').reset();
+                showToast(isEdit ? "正在更新..." : "正在儲存...");
 
                 try {
-                    // Simplified collection path for personal project
-                    await addDoc(collection(db, 'pikmin_spots'), {
-                        lat: latlng.lat,
-                        lng: latlng.lng,
-                        name: name,
-                        category: cat,
-                        description: desc,
-                        createdBy: currentUser.uid,
-                        createdAt: serverTimestamp()
-                    });
-                    
-                    showToast("新增成功！");
-                    // Note: No need to reset UI here as we did it optimistically
+                    if (isEdit) {
+                        // Update existing doc
+                        const docRef = doc(db, 'pikmin_spots', editId);
+                        await updateDoc(docRef, {
+                            lat: coords.lat,
+                            lng: coords.lng,
+                            name: name,
+                            category: cat,
+                            description: desc,
+                            updatedAt: serverTimestamp()
+                        });
+                        showToast("更新成功！");
+                    } else {
+                        // Create new doc
+                        await addDoc(collection(db, 'pikmin_spots'), {
+                            lat: coords.lat,
+                            lng: coords.lng,
+                            name: name,
+                            category: cat,
+                            description: desc,
+                            createdBy: currentUser.uid,
+                            createdAt: serverTimestamp()
+                        });
+                        showToast("新增成功！");
+                    }
 
                 } catch (error) {
-                    console.error("Error adding doc", error);
+                    console.error("Error adding/updating doc", error);
                     if (error.code === 'permission-denied') {
                          alert("⚠️ 寫入失敗：權限不足。\n\n請檢查 Firebase Console > Firestore Database > Rules，確保規則允許 request.auth != null。");
                     }
-                    showToast("新增失敗，請檢查網路");
-                    // In a real app we might want to restore the form state here
+                    showToast("操作失敗，請檢查網路");
                 }
             });
 
             // Update temp marker when category changes in form
             selectEl.addEventListener('change', (e) => {
+                const val = e.target.value;
                 if (tempMarker) {
-                   updateTempMarkerIcon(e.target.value);
+                   updateTempMarkerIcon(val);
+                }
+                // Auto-fill name with category label
+                if (CATEGORIES[val]) {
+                    document.getElementById('pointName').value = CATEGORIES[val].label;
                 }
             });
 
@@ -523,6 +696,48 @@
                     alert("⚠️ 資料庫權限不足！\n\n您似乎成功登入了，但被資料庫拒絕讀取。\n請回到 Firebase Console > Firestore Database > Rules (規則)，確認您已將規則改為：\nallow read, write: if request.auth != null;");
                 }
             });
+        }
+
+        function showModal(isEdit = false) {
+            const modal = document.getElementById('addModal');
+            const title = document.getElementById('modalTitle');
+            const btn = document.getElementById('modalSubmitBtn');
+            
+            if (isEdit) {
+                title.textContent = "編輯飾品點";
+                btn.textContent = "儲存變更";
+                isEditingMode = true;
+            } else {
+                title.textContent = "新增飾品點";
+                btn.textContent = "確認新增";
+                isEditingMode = false;
+                editPointId = null;
+            }
+            
+            modal.classList.remove('hidden');
+            document.getElementById('instructionBanner').classList.add('hidden');
+        }
+
+        function handleEditPoint(point) {
+            // Close popup first if open
+            map.closePopup();
+            
+            // Set state
+            editPointId = point.id;
+            
+            // Create temp marker at existing position for visual reference
+            if (tempMarker) map.removeLayer(tempMarker);
+            const defaultIcon = createLeafletIcon(CATEGORIES[point.category]?.icon || CATEGORIES.restaurant.icon);
+            tempMarker = L.marker([point.lat, point.lng], { icon: defaultIcon, opacity: 0.7 }).addTo(map);
+            
+            // Populate form
+            document.getElementById('pointName').value = point.name || '';
+            document.getElementById('pointCategory').value = point.category || 'restaurant';
+            document.getElementById('pointDesc').value = point.description || '';
+            document.getElementById('pointCoords').value = `${point.lat}, ${point.lng}`;
+            
+            // Show modal in Edit mode
+            showModal(true);
         }
 
         // --- Address Copy & Redirect Logic ---
@@ -669,9 +884,10 @@
         function renderPoints() {
             markersLayer.clearLayers();
             
-            const pointsToShow = currentFilter === 'all' 
+            // Updated filtering logic for multiple categories
+            const pointsToShow = currentFilters.has('all') 
                 ? allPoints 
-                : allPoints.filter(p => p.category === currentFilter);
+                : allPoints.filter(p => currentFilters.has(p.category));
 
             pointsToShow.forEach(p => {
                 const cat = CATEGORIES[p.category] || CATEGORIES.other;
@@ -704,19 +920,38 @@
                 };
                 btnWrapper.appendChild(copyBtn);
 
-                // Delete Button (Only for authenticated user in this demo)
+                // Edit Button (New) & Delete Button (Only for authenticated user in this demo)
                 if (currentUser) {
+                    const actionRow = document.createElement('div');
+                    actionRow.className = "flex gap-2 mt-1";
+
+                    // Edit Button
+                    const editBtn = document.createElement('button');
+                    editBtn.className = "flex-1 flex items-center justify-center gap-1 py-1 text-xs text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors";
+                    editBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        編輯
+                    `;
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        handleEditPoint(p);
+                    };
+                    actionRow.appendChild(editBtn);
+
+                    // Delete Button
                     const deleteBtn = document.createElement('button');
-                    deleteBtn.className = "flex items-center justify-center gap-1.5 w-full py-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors mt-1";
+                    deleteBtn.className = "flex-1 flex items-center justify-center gap-1 py-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors";
                     deleteBtn.innerHTML = `
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        刪除地點
+                        刪除
                     `;
                     deleteBtn.onclick = (e) => {
                         e.stopPropagation();
                         promptDelete(p.id);
                     };
-                    btnWrapper.appendChild(deleteBtn);
+                    actionRow.appendChild(deleteBtn);
+
+                    btnWrapper.appendChild(actionRow);
                 }
 
                 container.appendChild(btnWrapper);
@@ -787,7 +1022,7 @@
 
         function createCategoryBtn(id, data, isActive = false) {
             const btn = document.createElement('button');
-            btn.className = `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cat-btn ${isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-50 text-gray-600'}`;
+            btn.className = `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cat-btn text-gray-600 hover:bg-gray-50`;
             btn.dataset.id = id;
             
             const countSpan = id === 'all' 
@@ -801,25 +1036,68 @@
             `;
 
             btn.addEventListener('click', () => {
-                // Update active state
-                document.querySelectorAll('.cat-btn').forEach(b => {
-                    b.classList.remove('bg-blue-50', 'text-blue-700', 'font-medium');
-                    b.classList.add('text-gray-600');
-                });
-                btn.classList.remove('text-gray-600');
-                btn.classList.add('bg-blue-50', 'text-blue-700', 'font-medium');
+                if (id === 'all') {
+                    // Reset to show all
+                    currentFilters.clear();
+                    currentFilters.add('all');
+                } else {
+                    // Toggle logic
+                    if (currentFilters.has('all')) {
+                        currentFilters.delete('all');
+                    }
+                    
+                    if (currentFilters.has(id)) {
+                        currentFilters.delete(id);
+                    } else {
+                        currentFilters.add(id);
+                    }
+
+                    // If nothing selected, revert to 'all'
+                    if (currentFilters.size === 0) {
+                        currentFilters.add('all');
+                    }
+                }
                 
-                // Set Filter
-                currentFilter = id;
+                updateCategoryButtonsState();
                 renderPoints();
 
-                // On mobile, close sidebar after selection
-                if (window.innerWidth < 768) {
-                    document.getElementById('sidebar').classList.add('-translate-x-full');
+                // New Logic: Fly to nearest
+                if (id !== 'all' && currentFilters.has(id) && currentUserPosition) {
+                    const categoryPoints = allPoints.filter(p => p.category === id);
+                    if (categoryPoints.length > 0) {
+                        let nearestPoint = null;
+                        let minDistance = Infinity;
+
+                        categoryPoints.forEach(p => {
+                            const dist = map.distance(currentUserPosition, [p.lat, p.lng]);
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                nearestPoint = p;
+                            }
+                        });
+
+                        if (nearestPoint) {
+                            map.flyTo([nearestPoint.lat, nearestPoint.lng], 16);
+                            showToast(`已移動到最近的 ${CATEGORIES[id].label}`);
+                        }
+                    }
                 }
             });
 
             return btn;
+        }
+        
+        function updateCategoryButtonsState() {
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                const id = btn.dataset.id;
+                if (currentFilters.has(id)) {
+                    btn.classList.remove('text-gray-600', 'hover:bg-gray-50');
+                    btn.classList.add('bg-blue-50', 'text-blue-700', 'font-medium');
+                } else {
+                    btn.classList.add('text-gray-600', 'hover:bg-gray-50');
+                    btn.classList.remove('bg-blue-50', 'text-blue-700', 'font-medium');
+                }
+            });
         }
 
         function updateCounts() {
