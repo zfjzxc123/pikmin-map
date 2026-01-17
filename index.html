@@ -185,20 +185,56 @@
 
         // --- Configuration ---
         const CATEGORIES = {
+            // 餐飲
             restaurant: { id: 'restaurant', label: '餐廳', icon: '🍽️' },
             cafe: { id: 'cafe', label: '咖啡廳', icon: '☕' },
             sweetshop: { id: 'sweetshop', label: '甜點店', icon: '🍰' },
-            park: { id: 'park', label: '公園', icon: '🍀' },
-            waterside: { id: 'waterside', label: '水邊', icon: '💧' },
-            convenience: { id: 'convenience', label: '便利商店', icon: '🏪' },
-            train_station: { id: 'train_station', label: '車站', icon: '🚃' },
-            movie_theater: { id: 'movie_theater', label: '電影院', icon: '🎬' },
-            forest: { id: 'forest', label: '森林', icon: '🌲' },
-            supermarket: { id: 'supermarket', label: '超市', icon: '🍄' },
             bakery: { id: 'bakery', label: '麵包店', icon: '🥖' },
-            hair_salon: { id: 'hair_salon', label: '理髮廳', icon: '✂️' },
+            hamburger: { id: 'hamburger', label: '漢堡店', icon: '🍔' },
+            italian: { id: 'italian', label: '義式餐廳', icon: '🍝' },
+            ramen: { id: 'ramen', label: '拉麵店', icon: '🍜' },
+            sushi: { id: 'sushi', label: '壽司餐廳', icon: '🍣' },
+            curry: { id: 'curry', label: '咖哩餐廳', icon: '🍛' },
+            korean: { id: 'korean', label: '韓國餐廳', icon: '🥘' },
+            mexican: { id: 'mexican', label: '墨西哥餐廳', icon: '🌮' },
+            
+            // 購物
+            convenience: { id: 'convenience', label: '便利店', icon: '🏪' },
+            supermarket: { id: 'supermarket', label: '超市', icon: '🍄' },
+            pharmacy: { id: 'pharmacy', label: '藥局', icon: '💊' },
+            cosmetics: { id: 'cosmetics', label: '化妝品商店', icon: '💄' },
+            appliance: { id: 'appliance', label: '電器行', icon: '📺' },
+            hardware: { id: 'hardware', label: '五金行', icon: '🔨' },
             clothing_store: { id: 'clothing_store', label: '服飾店', icon: '👗' },
+            
+            // 設施/地點
+            hair_salon: { id: 'hair_salon', label: '美容院', icon: '✂️' },
+            post_office: { id: 'post_office', label: '郵局', icon: '📮' },
+            library: { id: 'library', label: '圖書館', icon: '📚' },
+            art_gallery: { id: 'art_gallery', label: '美術館', icon: '🎨' },
+            stadium: { id: 'stadium', label: '體育館', icon: '🏟️' },
+            theme_park: { id: 'theme_park', label: '主題樂園', icon: '🎡' },
+            zoo: { id: 'zoo', label: '動物園', icon: '🦁' },
+            laundromat: { id: 'laundromat', label: '自助洗衣店', icon: '🧺' },
+            university: { id: 'university', label: '大學和學院', icon: '🎓' },
+            hotel: { id: 'hotel', label: '飯店', icon: '🏨' },
+            movie_theater: { id: 'movie_theater', label: '電影院', icon: '🎬' },
+            shrine: { id: 'shrine', label: '神社和寺廟', icon: '⛩️' },
+
+            // 交通
+            train_station: { id: 'train_station', label: '車站', icon: '🚃' },
             bus_stop: { id: 'bus_stop', label: '公車站', icon: '🚏' },
+            airport: { id: 'airport', label: '機場', icon: '✈️' },
+            bridge: { id: 'bridge', label: '橋梁', icon: '🌉' },
+
+            // 戶外/自然
+            park: { id: 'park', label: '公園', icon: '🍀' },
+            forest: { id: 'forest', label: '森林', icon: '🌲' },
+            waterside: { id: 'waterside', label: '水邊', icon: '💧' },
+            beach: { id: 'beach', label: '海灘', icon: '🏖️' },
+            mountain: { id: 'mountain', label: '山丘', icon: '⛰️' },
+            roadside: { id: 'roadside', label: '路邊', icon: '🛣️' },
+            
             other: { id: 'other', label: '其他', icon: '📍' },
         };
 
@@ -214,7 +250,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         // --- State ---
         let map;
@@ -345,10 +380,17 @@
                 const name = document.getElementById('pointName').value;
                 const cat = document.getElementById('pointCategory').value;
                 const desc = document.getElementById('pointDesc').value;
-                const latlng = tempMarker.getLatLng();
+                const latlng = tempMarker.getLatLng(); // Capture data before reset
+
+                // 1. Close UI immediately (Optimistic UX)
+                toggleAddMode(); 
+                document.getElementById('addPointForm').reset();
+                
+                showToast("正在儲存...");
 
                 try {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'pikmin_spots'), {
+                    // Simplified collection path for personal project
+                    await addDoc(collection(db, 'pikmin_spots'), {
                         lat: latlng.lat,
                         lng: latlng.lng,
                         name: name,
@@ -358,16 +400,16 @@
                         createdAt: serverTimestamp()
                     });
                     
-                    // Reset UI
-                    toggleAddMode(); // Exit add mode
-                    document.getElementById('addPointForm').reset();
-                    document.getElementById('addModal').classList.add('hidden');
-                    if (tempMarker) map.removeLayer(tempMarker);
-                    tempMarker = null;
+                    showToast("新增成功！");
+                    // Note: No need to reset UI here as we did it optimistically
 
                 } catch (error) {
                     console.error("Error adding doc", error);
-                    // alert("新增失敗"); // Removed alert
+                    if (error.code === 'permission-denied') {
+                         alert("⚠️ 寫入失敗：權限不足。\n\n請檢查 Firebase Console > Firestore Database > Rules，確保規則允許 request.auth != null。");
+                    }
+                    showToast("新增失敗，請檢查網路");
+                    // In a real app we might want to restore the form state here
                 }
             });
 
@@ -390,7 +432,8 @@
         // --- Logic Helper Functions ---
 
         function startListening() {
-            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'pikmin_spots'));
+            // Simplified collection path for personal project
+            const q = query(collection(db, 'pikmin_spots'));
             onSnapshot(q, (snapshot) => {
                 allPoints = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderPoints();
@@ -403,7 +446,12 @@
                 console.error("Snapshot error", err);
                 const loader = document.getElementById('dataLoadingIndicator');
                 if (loader) {
-                     loader.innerHTML = '<span class="text-red-500">連線錯誤</span>';
+                     loader.innerHTML = '<span class="text-red-500">讀取失敗</span>';
+                }
+                
+                // Specific handling for permission errors
+                if (err.code === 'permission-denied') {
+                    alert("⚠️ 資料庫權限不足！\n\n您似乎成功登入了，但被資料庫拒絕讀取。\n請回到 Firebase Console > Firestore Database > Rules (規則)，確認您已將規則改為：\nallow read, write: if request.auth != null;");
                 }
             });
         }
@@ -531,13 +579,21 @@
 
         async function confirmDelete() {
             if (!pointToDeleteId) return;
+            
+            // 1. Close UI immediately (Optimistic UX)
+            const idToDelete = pointToDeleteId;
+            cancelDelete();
+            
+            showToast("正在刪除...");
+
             try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'pikmin_spots', pointToDeleteId);
+                // Simplified collection path for personal project
+                const docRef = doc(db, 'pikmin_spots', idToDelete);
                 await deleteDoc(docRef);
-                cancelDelete(); 
+                showToast("刪除成功");
             } catch (error) {
                 console.error("Error removing document: ", error);
-                cancelDelete();
+                showToast("刪除失敗");
             }
         }
 
