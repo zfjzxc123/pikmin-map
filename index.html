@@ -12,6 +12,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+    <!-- Leaflet MarkerCluster CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 
@@ -72,6 +77,14 @@
             z-index: -1;
             animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
+
+        /* Cluster Customization (Optional - making it look nicer) */
+        .marker-cluster-small { background-color: rgba(181, 226, 140, 0.6); }
+        .marker-cluster-small div { background-color: rgba(110, 204, 57, 0.6); }
+        .marker-cluster-medium { background-color: rgba(241, 211, 87, 0.6); }
+        .marker-cluster-medium div { background-color: rgba(240, 194, 12, 0.6); }
+        .marker-cluster-large { background-color: rgba(253, 156, 115, 0.6); }
+        .marker-cluster-large div { background-color: rgba(241, 128, 23, 0.6); }
     </style>
 </head>
 <body class="bg-gray-100 h-screen w-full flex flex-col overflow-hidden text-slate-800">
@@ -85,6 +98,10 @@
             <h1 class="font-bold text-lg text-gray-800 tracking-tight">Pikmin 飾品地圖</h1>
         </div>
         <div class="flex gap-2">
+            <!-- Search Button -->
+            <button id="searchToggleBtn" class="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
             <button id="filterToggleBtn" class="p-2 rounded-full bg-gray-100 text-gray-600 md:hidden hover:bg-gray-200 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
             </button>
@@ -98,18 +115,29 @@
     <div class="flex flex-1 relative overflow-hidden">
         <!-- Sidebar (Filter) -->
         <div id="sidebar" class="absolute md:relative z-20 top-0 left-0 h-full bg-white shadow-lg md:shadow-none w-64 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r border-gray-200">
-            <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                <div class="flex items-center gap-2">
-                    <div>
-                        <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">飾品分類 (可多選)</h2>
-                        <p class="text-xs text-gray-400">點擊分類以過濾地圖</p>
+            <div class="p-4 border-b border-gray-100 bg-gray-50 flex flex-col gap-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider">飾品分類</h2>
                     </div>
+                    <!-- Mobile Only Close Sidebar Button -->
+                    <button id="sidebarCloseBtn" class="md:hidden text-gray-400 p-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
-                <!-- Mobile Only Close Sidebar Button -->
-                <button id="sidebarCloseBtn" class="md:hidden text-gray-400 p-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+                
+                <!-- Filter Mode Toggle -->
+                <div class="flex bg-gray-200 p-1 rounded-lg">
+                    <button id="modeIncludeBtn" class="flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all shadow-sm bg-white text-blue-600">
+                        ✅ 只顯示
+                    </button>
+                    <button id="modeExcludeBtn" class="flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all text-gray-500 hover:text-gray-700">
+                        🚫 排除
+                    </button>
+                </div>
+                <p class="text-[10px] text-gray-400 text-center" id="modeDesc">點擊類別以顯示該種類</p>
             </div>
+            
             <div id="categoryList" class="flex-1 overflow-y-auto p-2 space-y-1">
                 <!-- Categories will be injected here JS -->
             </div>
@@ -138,6 +166,25 @@
             <button id="locateBtn" class="absolute bottom-20 right-2.5 z-[400] bg-white w-[34px] h-[34px] flex items-center justify-center rounded shadow-sm border-2 border-[rgba(0,0,0,0.2)] hover:bg-gray-50 text-gray-700 transition-colors" title="定位到目前位置">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><crosshair cx="12" cy="12" r="10"></crosshair><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
             </button>
+
+            <!-- Search Modal (Top Overlay) -->
+            <div id="searchModal" class="hidden absolute top-0 left-0 w-full h-full bg-white/50 backdrop-blur-sm z-[2000]">
+                <div class="w-full max-w-md mx-auto bg-white shadow-lg md:rounded-b-2xl h-full md:h-auto flex flex-col">
+                    <div class="p-4 border-b border-gray-100 flex items-center gap-2">
+                        <svg class="text-gray-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input id="searchInput" type="text" placeholder="搜尋地址或地標..." class="flex-1 outline-none text-base bg-transparent" autocomplete="off">
+                        <button id="closeSearchBtn" class="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                    <div id="searchResults" class="flex-1 overflow-y-auto p-2 space-y-1 bg-gray-50 md:max-h-[60vh]">
+                        <!-- Results will be injected here -->
+                        <div class="p-4 text-center text-gray-400 text-sm">
+                            輸入文字以搜尋真實地圖位置
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Add/Edit Point Form (Modal) -->
             <div id="addModal" class="hidden absolute bottom-0 left-0 w-full bg-white shadow-[0_-5px_20px_rgba(0,0,0,0.1)] rounded-t-2xl z-[1001] p-6 animate-slide-up">
@@ -308,11 +355,13 @@
         let tempMarker = null;
         // Changed to Set for multiple selection
         let currentFilters = new Set(['all']);
+        let isExcludeMode = false; // New state for exclusion logic
         let pointToDeleteId = null;
         let redirectLatLng = null; // Store lat/lng for redirection
         let userLocationMarker = null;
         let userLocationCircle = null;
         let currentUserPosition = null;
+        let searchDebounceTimeout = null;
 
         // --- Initialization ---
         async function init() {
@@ -361,7 +410,21 @@
             // Move zoom control to bottom right
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            markersLayer = L.layerGroup().addTo(map);
+            // Replace LayerGroup with MarkerClusterGroup
+            markersLayer = L.markerClusterGroup({
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                spiderfyOnMaxZoom: true,
+                maxClusterRadius: 50,
+                iconCreateFunction: function(cluster) {
+                    // Custom cluster icon (optional, keeping default style for now but cleaner)
+                    return L.divIcon({ 
+                        html: '<div><span>' + cluster.getChildCount() + '</span></div>', 
+                        className: 'marker-cluster marker-cluster-small', 
+                        iconSize: new L.Point(40, 40) 
+                    });
+                }
+            }).addTo(map);
 
             // Map Click Event
             map.on('click', (e) => {
@@ -374,7 +437,7 @@
 
                 // Determine default category based on filter
                 let defaultCat = 'restaurant';
-                if (currentFilters.size > 0 && !currentFilters.has('all')) {
+                if (!isExcludeMode && currentFilters.size > 0 && !currentFilters.has('all')) {
                     defaultCat = currentFilters.values().next().value;
                 }
 
@@ -516,6 +579,38 @@
                 const sidebar = document.getElementById('sidebar');
                 sidebar.classList.add('-translate-x-full');
             });
+            
+            // Filter Mode Toggles
+            document.getElementById('modeIncludeBtn').addEventListener('click', () => {
+                setFilterMode(false);
+            });
+            document.getElementById('modeExcludeBtn').addEventListener('click', () => {
+                setFilterMode(true);
+            });
+
+            // Search Handlers
+            document.getElementById('searchToggleBtn').addEventListener('click', () => {
+                document.getElementById('searchModal').classList.remove('hidden');
+                document.getElementById('searchInput').focus();
+            });
+
+            document.getElementById('closeSearchBtn').addEventListener('click', () => {
+                document.getElementById('searchModal').classList.add('hidden');
+            });
+
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                clearTimeout(searchDebounceTimeout);
+                
+                if (query.length === 0) {
+                    document.getElementById('searchResults').innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">輸入文字以搜尋真實地圖位置</div>';
+                    return;
+                }
+
+                searchDebounceTimeout = setTimeout(() => {
+                    handleSearch(query);
+                }, 500);
+            });
 
             // Add Point Button
             document.getElementById('addPointBtn').addEventListener('click', toggleAddMode);
@@ -533,7 +628,7 @@
                 
                 // Determine default category based on filter
                 let defaultCat = 'restaurant';
-                if (currentFilters.size > 0 && !currentFilters.has('all')) {
+                if (!isExcludeMode && currentFilters.size > 0 && !currentFilters.has('all')) {
                     defaultCat = currentFilters.values().next().value;
                 }
 
@@ -672,6 +767,92 @@
         }
 
         // --- Logic Helper Functions ---
+        
+        function setFilterMode(exclude) {
+            isExcludeMode = exclude;
+            
+            // Reset filters to 'all' (meaning Show All or Hide None)
+            currentFilters.clear();
+            currentFilters.add('all');
+            
+            // Update UI buttons
+            const incBtn = document.getElementById('modeIncludeBtn');
+            const excBtn = document.getElementById('modeExcludeBtn');
+            const desc = document.getElementById('modeDesc');
+            
+            if (exclude) {
+                // Exclude Mode Active
+                incBtn.className = "flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all text-gray-500 hover:text-gray-700";
+                excBtn.className = "flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all shadow-sm bg-white text-red-600";
+                desc.textContent = "點擊類別以隱藏 (反選)";
+            } else {
+                // Include Mode Active
+                incBtn.className = "flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all shadow-sm bg-white text-blue-600";
+                excBtn.className = "flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition-all text-gray-500 hover:text-gray-700";
+                desc.textContent = "點擊類別以顯示該種類";
+            }
+            
+            updateCategoryButtonsState();
+            renderPoints();
+        }
+
+        async function handleSearch(query) {
+            const resultsContainer = document.getElementById('searchResults');
+            resultsContainer.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm"><div class="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>搜尋中...</div>';
+
+            const results = [];
+
+            // 2. Search Online (OSM Nominatim)
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&accept-language=zh-TW&limit=5&countrycodes=tw`);
+                const onlineMatches = await response.json();
+                
+                onlineMatches.forEach(place => {
+                    results.push({
+                        type: 'online',
+                        data: place
+                    });
+                });
+            } catch (err) {
+                console.error("OSM Search Error", err);
+            }
+
+            renderSearchResults(results);
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '';
+
+            if (results.length === 0) {
+                container.innerHTML = '<div class="p-4 text-center text-gray-400 text-sm">找不到相關結果</div>';
+                return;
+            }
+
+            results.forEach(res => {
+                const div = document.createElement('div');
+                div.className = "p-3 bg-white hover:bg-gray-50 border-b border-gray-100 cursor-pointer transition-colors";
+                
+                // Only online results now
+                const p = res.data; // OSM data
+                div.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="text-xl">📍</div>
+                        <div>
+                            <h4 class="font-bold text-sm text-gray-800">${p.name || p.display_name.split(',')[0]}</h4>
+                            <p class="text-xs text-gray-500 truncate w-full max-w-[250px]">${p.display_name}</p>
+                        </div>
+                    </div>
+                `;
+                div.onclick = () => {
+                    document.getElementById('searchModal').classList.add('hidden');
+                    const lat = parseFloat(p.lat);
+                    const lon = parseFloat(p.lon);
+                    map.setView([lat, lon], 18);
+                };
+                container.appendChild(div);
+            });
+        }
 
         function startListening() {
             // Simplified collection path for personal project
@@ -884,10 +1065,20 @@
         function renderPoints() {
             markersLayer.clearLayers();
             
-            // Updated filtering logic for multiple categories
-            const pointsToShow = currentFilters.has('all') 
-                ? allPoints 
-                : allPoints.filter(p => currentFilters.has(p.category));
+            // Updated filtering logic for multiple categories and modes
+            let pointsToShow = [];
+            
+            if (!isExcludeMode) {
+                // Include Mode: Show if in set (or set has all)
+                pointsToShow = currentFilters.has('all') 
+                    ? allPoints 
+                    : allPoints.filter(p => currentFilters.has(p.category));
+            } else {
+                // Exclude Mode: Show if NOT in set (assuming 'all' means hide none)
+                pointsToShow = currentFilters.has('all') 
+                    ? allPoints 
+                    : allPoints.filter(p => !currentFilters.has(p.category));
+            }
 
             pointsToShow.forEach(p => {
                 const cat = CATEGORIES[p.category] || CATEGORIES.other;
@@ -1062,7 +1253,7 @@
                 renderPoints();
 
                 // New Logic: Fly to nearest
-                if (id !== 'all' && currentFilters.has(id) && currentUserPosition) {
+                if (id !== 'all' && currentFilters.has(id) && !isExcludeMode && currentUserPosition) {
                     const categoryPoints = allPoints.filter(p => p.category === id);
                     if (categoryPoints.length > 0) {
                         let nearestPoint = null;
@@ -1077,7 +1268,7 @@
                         });
 
                         if (nearestPoint) {
-                            map.flyTo([nearestPoint.lat, nearestPoint.lng], 16);
+                            map.setView([nearestPoint.lat, nearestPoint.lng], 16); 
                             showToast(`已移動到最近的 ${CATEGORIES[id].label}`);
                         }
                     }
@@ -1090,22 +1281,37 @@
         function updateCategoryButtonsState() {
             document.querySelectorAll('.cat-btn').forEach(btn => {
                 const id = btn.dataset.id;
-                if (currentFilters.has(id)) {
-                    btn.classList.remove('text-gray-600', 'hover:bg-gray-50');
-                    btn.classList.add('bg-blue-50', 'text-blue-700', 'font-medium');
+                const isActive = currentFilters.has(id);
+                
+                // Reset classes
+                btn.classList.remove(
+                    'bg-blue-50', 'text-blue-700', 
+                    'bg-red-50', 'text-red-700', 
+                    'font-medium', 'text-gray-600', 'hover:bg-gray-50'
+                );
+
+                if (isActive) {
+                    if (isExcludeMode) {
+                        // Exclude Mode: Active = Red (Hidden)
+                        btn.classList.add('bg-red-50', 'text-red-700', 'font-medium');
+                    } else {
+                        // Include Mode: Active = Blue (Shown)
+                        btn.classList.add('bg-blue-50', 'text-blue-700', 'font-medium');
+                    }
                 } else {
                     btn.classList.add('text-gray-600', 'hover:bg-gray-50');
-                    btn.classList.remove('bg-blue-50', 'text-blue-700', 'font-medium');
                 }
             });
         }
 
         function updateCounts() {
-            // Update All count
+            // Updated to reflect "visible on map" counts based on current filter mode logic?
+            // Actually, usually counts show total available points for that category.
+            // Let's stick to total available points as it's less confusing for the sidebar.
+            
             const allBtn = document.querySelector(`.cat-btn[data-id="all"] .count-badge`);
             if(allBtn) allBtn.textContent = allPoints.length;
 
-            // Update individual counts
             Object.keys(CATEGORIES).forEach(key => {
                 const btn = document.querySelector(`.cat-btn[data-id="${key}"] .count-badge`);
                 if(btn) {
